@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a0a2e">
+<meta name="description" content="Sacred Wisdom – Ask questions of a fine-tuned AI trained on the Bhagavad Gita, Quran, Bible, and Guru Granth Sahib. Runs entirely on your device.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sacred Wisdom">
+<title>Sacred Wisdom – On-Device AI</title>
+
+<!-- PWA Manifest inline -->
+<script>
+const manifest = {
+  name: "Sacred Wisdom – On-Device AI",
+  short_name: "Sacred Wisdom",
+  description: "Ask the scriptures. Runs entirely on your device.",
+  start_url: "./",
+  display: "standalone",
+  background_color: "#1a0a2e",
+  theme_color: "#1a0a2e",
+  icons: [
+    { src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='32' fill='%231a0a2e'/><text x='96' y='130' font-size='100' text-anchor='middle'>☸</text></svg>", sizes: "192x192", type: "image/svg+xml" }
+  ]
+};
+const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+const manifestURL = URL.createObjectURL(blob);
+const link = document.createElement('link');
+link.rel = 'manifest';
+link.href = manifestURL;
+document.head.appendChild(link);
+</script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lora:ital,wght@0,400;0,500;1,400&display=swap');
+
+  :root {
+    --ink: #1a0a2e;
+    --ink-mid: #2d1259;
+    --gold: #c9a227;
+    --gold-light: #e8c84a;
+    --gold-dim: #7a611a;
+    --cream: #f5ede0;
+    --cream-dim: #c9bfae;
+    --rose: #8b2252;
+    --teal: #1a6b6b;
+    --surface: rgba(255,255,255,0.04);
+    --border: rgba(201,162,39,0.2);
+    --radius: 16px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Lora', Georgia, serif;
+    background: var(--ink);
+    color: var(--cream);
+  }
+
+  /* Animated starfield background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(139,34,82,0.18) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 80% at 80% 90%, rgba(26,107,107,0.15) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 40% at 50% 50%, rgba(45,18,89,0.8) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  body::after {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      radial-gradient(1px 1px at 15% 20%, rgba(201,162,39,0.6), transparent),
+      radial-gradient(1px 1px at 72% 8%, rgba(201,162,39,0.4), transparent),
+      radial-gradient(1.5px 1.5px at 45% 75%, rgba(201,162,39,0.5), transparent),
+      radial-gradient(1px 1px at 88% 45%, rgba(201,162,39,0.3), transparent),
+      radial-gradient(1px 1px at 30% 60%, rgba(201,162,39,0.4), transparent),
+      radial-gradient(1px 1px at 60% 30%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 10% 85%, rgba(255,255,255,0.2), transparent);
+    pointer-events: none;
+  }
+
+  #app {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column;
+    height: 100%; height: 100dvh;
+    max-width: 480px; margin: 0 auto;
+  }
+
+  /* ── HEADER ── */
+  header {
+    flex-shrink: 0;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(26,10,46,0.98) 0%, rgba(26,10,46,0.92) 100%);
+    backdrop-filter: blur(12px);
+    text-align: center;
+  }
+
+  .logo-row {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    margin-bottom: 2px;
+  }
+
+  .logo-glyph {
+    font-size: 26px;
+    filter: drop-shadow(0 0 8px var(--gold));
+    animation: halo 3s ease-in-out infinite;
+  }
+
+  @keyframes halo {
+    0%, 100% { filter: drop-shadow(0 0 6px var(--gold)); }
+    50% { filter: drop-shadow(0 0 14px var(--gold-light)); }
+  }
+
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--gold-light);
+    text-shadow: 0 0 20px rgba(232,200,74,0.4);
+  }
+
+  .subtitle {
+    font-size: 11px;
+    color: var(--cream-dim);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* ── STATUS BAR ── */
+  #status-bar {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    background: rgba(201,162,39,0.06);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #666; flex-shrink: 0;
+    transition: background 0.4s, box-shadow 0.4s;
+  }
+  .status-dot.loading { background: var(--gold); box-shadow: 0 0 8px var(--gold); animation: pulse 1.2s infinite; }
+  .status-dot.ready { background: #4caf7d; box-shadow: 0 0 8px #4caf7d; }
+  .status-dot.error { background: #e06060; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  #status-text { color: var(--cream-dim); flex: 1; font-family: 'Lora', serif; font-style: italic; }
+  #progress-pct { color: var(--gold); font-weight: 600; font-size: 11px; font-family: monospace; }
+
+  /* progress bar */
+  #progress-wrap {
+    flex-shrink: 0;
+    height: 3px;
+    background: rgba(201,162,39,0.1);
+    display: none;
+  }
+  #progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold-dim), var(--gold-light));
+    width: 0%;
+    transition: width 0.3s;
+  }
+
+  /* ── CHAT AREA ── */
+  #chat {
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    padding: 16px 16px 8px;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #chat::-webkit-scrollbar { width: 4px; }
+  #chat::-webkit-scrollbar-track { background: transparent; }
+  #chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Welcome card */
+  .welcome-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 18px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .welcome-card .mandala {
+    font-size: 40px; margin-bottom: 10px;
+    display: block;
+    animation: spin-slow 20s linear infinite;
+  }
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .welcome-card h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 15px; font-weight: 600;
+    color: var(--gold-light);
+    margin-bottom: 8px;
+    letter-spacing: 0.06em;
+  }
+
+  .welcome-card p {
+    font-size: 13px; line-height: 1.6;
+    color: var(--cream-dim);
+  }
+
+  .scripture-tags {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    justify-content: center; margin-top: 12px;
+  }
+
+  .tag {
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 3px 10px; border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--gold);
+    background: rgba(201,162,39,0.06);
+  }
+
+  /* Setup card */
+  .setup-card {
+    background: rgba(26,107,107,0.1);
+    border: 1px solid rgba(26,107,107,0.4);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .setup-card h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 13px; color: #6dd5c2;
+    letter-spacing: 0.06em; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .setup-card p { font-size: 12px; color: var(--cream-dim); line-height: 1.6; margin-bottom: 8px; }
+  .setup-card a { color: var(--gold); text-decoration: underline; word-break: break-all; font-size: 11px; }
+
+  /* Quick prompts */
+  .quick-prompts { margin-bottom: 12px; }
+  .quick-prompts p { font-size: 11px; color: var(--cream-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+  .qp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+  .qp-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 10px;
+    color: var(--cream-dim);
+    font-family: 'Lora', serif;
+    font-size: 11px; line-height: 1.4;
+    cursor: pointer; text-align: left;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .qp-btn:active, .qp-btn:hover {
+    border-color: var(--gold);
+    color: var(--gold-light);
+    background: rgba(201,162,39,0.08);
+  }
+
+  /* Messages */
+  .msg { margin-bottom: 14px; display: flex; gap: 10px; animation: fadein 0.3s ease; }
+
+  @keyframes fadein { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+
+  .msg.user { flex-direction: row-reverse; }
+
+  .msg-avatar {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .msg.user .msg-avatar { background: linear-gradient(135deg, var(--rose), #c44d7b); }
+  .msg.ai .msg-avatar { background: linear-gradient(135deg, var(--ink-mid), var(--teal)); border: 1px solid var(--border); }
+
+  .msg-bubble {
+    max-width: 82%; padding: 11px 14px;
+    border-radius: var(--radius);
+    font-size: 14px; line-height: 1.6;
+  }
+
+  .msg.user .msg-bubble {
+    background: linear-gradient(135deg, rgba(139,34,82,0.35), rgba(45,18,89,0.5));
+    border: 1px solid rgba(139,34,82,0.4);
+    border-radius: var(--radius) 4px var(--radius) var(--radius);
+    color: var(--cream);
+  }
+
+  .msg.ai .msg-bubble {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 4px var(--radius) var(--radius) var(--radius);
+    color: var(--cream);
+  }
+
+  .msg.ai .msg-bubble em { color: var(--gold); font-style: italic; }
+  .msg.ai .msg-bubble strong { color: var(--gold-light); }
+
+  /* Typing dots */
+  .typing-dots { display: flex; gap: 4px; padding: 4px 0; }
+  .typing-dots span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--gold-dim);
+    animation: bounce 1.2s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%,80%,100% { transform: translateY(0); }
+    40% { transform: translateY(-6px); }
+  }
+
+  /* ── INPUT AREA ── */
+  .input-area {
+    flex-shrink: 0;
+    padding: 10px 14px max(10px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+    background: rgba(26,10,46,0.96);
+    backdrop-filter: blur(12px);
+  }
+
+  .input-row {
+    display: flex; align-items: flex-end; gap: 8px;
+  }
+
+  #user-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 10px 16px;
+    color: var(--cream);
+    font-family: 'Lora', serif;
+    font-size: 14px;
+    resize: none;
+    min-height: 42px; max-height: 100px;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+
+  #user-input::placeholder { color: rgba(197,191,174,0.4); font-style: italic; }
+
+  #user-input:focus {
+    border-color: rgba(201,162,39,0.5);
+    box-shadow: 0 0 0 3px rgba(201,162,39,0.08);
+  }
+
+  #send-btn {
+    width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 4px 12px rgba(201,162,39,0.3);
+  }
+
+  #send-btn:disabled {
+    opacity: 0.35; cursor: not-allowed; box-shadow: none;
+  }
+
+  #send-btn:not(:disabled):active { transform: scale(0.92); }
+
+  /* Model selector */
+  .model-row {
+    display: flex; align-items: center; gap: 8px; margin-top: 8px;
+  }
+
+  .model-row label { font-size: 10px; color: var(--cream-dim); letter-spacing: 0.08em; text-transform: uppercase; flex-shrink: 0; }
+
+  #model-select {
+    flex: 1;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(201,162,39,0.15);
+    border-radius: 8px;
+    color: var(--cream-dim);
+    font-family: 'Lora', serif;
+    font-size: 11px;
+    padding: 4px 8px;
+    outline: none;
+    -webkit-appearance: none;
+  }
+
+  #load-btn {
+    padding: 4px 12px;
+    background: linear-gradient(135deg, rgba(201,162,39,0.2), rgba(201,162,39,0.35));
+    border: 1px solid var(--gold-dim);
+    border-radius: 8px;
+    color: var(--gold-light);
+    font-family: 'Cinzel', serif;
+    font-size: 10px; letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #load-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  #load-btn:not(:disabled):active { transform: scale(0.95); }
+
+  /* Info modal */
+  #info-overlay {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: rgba(10,4,20,0.85); backdrop-filter: blur(8px);
+    align-items: flex-end;
+  }
+  #info-overlay.open { display: flex; }
+
+  #info-sheet {
+    width: 100%; max-width: 480px; margin: 0 auto;
+    background: #1e0d3a;
+    border-top: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px max(20px, env(safe-area-inset-bottom));
+    animation: slideup 0.3s ease;
+  }
+  @keyframes slideup { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+  #info-sheet h3 {
+    font-family: 'Cinzel', serif; font-size: 15px; color: var(--gold-light);
+    margin-bottom: 12px; letter-spacing: 0.06em;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  #info-sheet .close-btn {
+    font-size: 22px; cursor: pointer; color: var(--cream-dim);
+    background: none; border: none; padding: 0;
+  }
+
+  #info-sheet p, #info-sheet li {
+    font-size: 13px; color: var(--cream-dim); line-height: 1.65; margin-bottom: 8px;
+  }
+
+  #info-sheet a { color: var(--gold); }
+
+  #info-sheet ol { padding-left: 18px; }
+
+  /* Header info button */
+  .info-btn {
+    position: absolute; right: 16px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none;
+    color: var(--cream-dim); font-size: 18px;
+    cursor: pointer; padding: 4px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  header { position: relative; }
+
+  /* Scrollbar for info-sheet */
+  #info-sheet { max-height: 80vh; overflow-y: auto; }
+
+  /* WebGPU warning */
+  .webgpu-warn {
+    background: rgba(139,34,82,0.15);
+    border: 1px solid rgba(139,34,82,0.4);
+    border-radius: 10px; padding: 12px 14px;
+    font-size: 12px; color: #e08080; line-height: 1.5;
+    margin-bottom: 10px; display: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <div class="logo-row">
+      <span class="logo-glyph">☸</span>
+      <h1>Sacred Wisdom</h1>
+      <span class="logo-glyph">✦</span>
+    </div>
+    <div class="subtitle">On-Device AI · Scripture Q&amp;A</div>
+    <button class="info-btn" onclick="openInfo()" aria-label="About">ℹ️</button>
+  </header>
+
+  <div id="status-bar">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-text">Choose a model and tap Load</span>
+    <span id="progress-pct"></span>
+  </div>
+  <div id="progress-wrap"><div id="progress-bar"></div></div>
+
+  <div id="chat">
+    <div class="welcome-card">
+      <span class="mandala">☸</span>
+      <h2>Ask the Scriptures</h2>
+      <p>An AI trained on the <strong>Bhagavad Gita</strong>, <strong>Quran</strong>, <strong>Bible</strong>, and <strong>Guru Granth Sahib</strong> — running entirely on your device. No data leaves your phone.</p>
+      <div class="scripture-tags">
+        <span class="tag">📖 Bible</span>
+        <span class="tag">☪ Quran</span>
+        <span class="tag">☸ Gita</span>
+        <span class="tag">🙏 Granth Sahib</span>
+      </div>
+    </div>
+
+    <div class="webgpu-warn" id="webgpu-warn">
+      ⚠️ <strong>WebGPU not detected.</strong> Your browser may not support in-browser AI. Try <strong>Chrome 113+</strong> on Android (not Samsung Internet or Firefox). Alternatively, install the <strong>PocketPal</strong> or <strong>SmolChat</strong> app and load a GGUF model manually.
+    </div>
+
+    <div class="setup-card">
+      <h3>⬇️ Using the Fine-Tuned Model</h3>
+      <p>The model from the research article is available on Hugging Face. For full offline use on Android, download a GGUF version and load it in <strong>PocketPal AI</strong> or <strong>SmolChat</strong> from the Play Store.</p>
+      <p>🔗 Search HuggingFace for: <a href="https://huggingface.co/models?search=religious+text+slm" target="_blank">religious-text SLM models</a></p>
+      <p>Or use the <strong>in-browser AI below</strong> (Phi or Gemma, spiritually prompted) while that model downloads.</p>
+    </div>
+
+    <div class="quick-prompts" id="quick-prompts">
+      <p>✦ Try asking</p>
+      <div class="qp-grid">
+        <button class="qp-btn" onclick="sendQuick(this)">What does the Gita say about the soul's immortality?</button>
+        <button class="qp-btn" onclick="sendQuick(this)">How does the Quran describe God's mercy?</button>
+        <button class="qp-btn" onclick="sendQuick(this)">What is the meaning of the Sermon on the Mount?</button>
+        <button class="qp-btn" onclick="sendQuick(this)">What is the concept of Naam in Guru Granth Sahib?</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="model-row">
+      <label>Model</label>
+      <select id="model-select">
+        <option value="Phi-3.5-mini-instruct-q4f16_1-MLC">Phi-3.5 Mini (2.4GB) – Recommended</option>
+        <option value="gemma-2-2b-it-q4f16_1-MLC">Gemma 2 2B (1.5GB) – Smaller</option>
+        <option value="Llama-3.2-3B-Instruct-q4f16_1-MLC">Llama 3.2 3B (2.0GB) – Balanced</option>
+        <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Qwen 2.5 1.5B (1.0GB) – Fastest</option>
+      </select>
+      <button id="load-btn" onclick="loadModel()">Load</button>
+    </div>
+    <div class="input-row">
+      <textarea id="user-input" placeholder="Ask about any scripture…" rows="1" disabled
+        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button id="send-btn" onclick="sendMessage()" disabled>✦</button>
+    </div>
+  </div>
+</div>
+
+<!-- Info Sheet -->
+<div id="info-overlay" onclick="closeInfoOutside(event)">
+  <div id="info-sheet">
+    <h3>
+      About Sacred Wisdom
+      <button class="close-btn" onclick="closeInfo()">×</button>
+    </h3>
+    <p><strong>Sacred Wisdom</strong> is a Progressive Web App that runs a small language model entirely in your browser — no internet required after the first download, no servers, no data sharing.</p>
+
+    <p><strong>The Research Model</strong><br>
+    This app is inspired by a fine-tuned SLM trained on the Bhagavad Gita, Quran, Bible, and Guru Granth Sahib. Read the article:
+    <a href="https://medium.com/@dassandipan9080/fine-tuning-slm-on-religious-texts-gita-quran-bible-and-guru-granth-sahib-ffccc05f4b68" target="_blank">Medium – Sandipan Das</a></p>
+
+    <p><strong>Running that model on Android:</strong></p>
+    <ol>
+      <li>Search <a href="https://huggingface.co" target="_blank">Hugging Face</a> for the model (search "sandipan religious text")</li>
+      <li>Download a <strong>.gguf</strong> quantized file (Q4_K_M recommended for phones)</li>
+      <li>Install <strong>PocketPal AI</strong> or <strong>SmolChat</strong> from the Play Store</li>
+      <li>Load the .gguf file in the app and chat!</li>
+    </ol>
+
+    <p><strong>In-browser model (this app):</strong></p>
+    <ol>
+      <li>Tap <strong>Load</strong> – the model downloads once (1–2.4 GB)</li>
+      <li>It's cached in your browser for offline use</li>
+      <li>Runs via WebGPU on your phone's GPU – no cloud needed</li>
+    </ol>
+
+    <p>Requires <strong>Chrome 113+</strong> on Android with WebGPU support. Samsung Internet and Firefox are not supported.</p>
+    <p style="color: var(--gold); font-size:11px; text-align:center; margin-top:12px;">✦ All computation happens on your device ✦</p>
+  </div>
+</div>
+
+<!-- WebLLM via ESM CDN -->
+<script type="module">
+import * as webllm from "https://esm.run/@mlc-ai/web-llm";
+
+const SYSTEM_PROMPT = `You are Sacred Wisdom, a contemplative AI assistant deeply versed in the world's great scriptures: the Bhagavad Gita, the Holy Quran, the Bible (Old and New Testaments), and the Guru Granth Sahib.
+
+Your purpose is to answer questions about these sacred texts with clarity, reverence, and scholarly depth. When relevant, draw from multiple traditions to show their universal wisdom. When quoting scripture, name the source (book, chapter/verse or surah/ayah). Be respectful of all traditions. Use gentle, meditative language. Keep answers concise but profound — ideally 3–6 sentences unless the user asks for more.
+
+Do not discuss topics unrelated to spirituality, faith, or the scriptures.`;
+
+let engine = null;
+let isGenerating = false;
+const modelMap = {
+  "Phi-3.5-mini-instruct-q4f16_1-MLC": "Phi-3.5-mini-instruct-q4f16_1-MLC",
+  "gemma-2-2b-it-q4f16_1-MLC": "gemma-2-2b-it-q4f16_1-MLC",
+  "Llama-3.2-3B-Instruct-q4f16_1-MLC": "Llama-3.2-3B-Instruct-q4f16_1-MLC",
+  "Qwen2.5-1.5B-Instruct-q4f16_1-MLC": "Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
+};
+
+// Check WebGPU
+async function checkWebGPU() {
+  if (!navigator.gpu) {
+    document.getElementById('webgpu-warn').style.display = 'block';
+    setStatus('WebGPU not available – try Chrome 113+ on Android', 'error');
+    return false;
+  }
+  return true;
+}
+
+window.loadModel = async function() {
+  if (!(await checkWebGPU())) return;
+
+  const modelId = document.getElementById('model-select').value;
+  const loadBtn = document.getElementById('load-btn');
+  const progressWrap = document.getElementById('progress-wrap');
+  const progressBar = document.getElementById('progress-bar');
+  const progressPct = document.getElementById('progress-pct');
+
+  loadBtn.disabled = true;
+  progressWrap.style.display = 'block';
+
+  setStatus('Initialising…', 'loading');
+
+  try {
+    engine = await webllm.CreateMLCEngine(modelId, {
+      initProgressCallback: (report) => {
+        const pct = Math.round(report.progress * 100);
+        progressBar.style.width = pct + '%';
+        progressPct.textContent = pct + '%';
+
+        if (report.text.includes('Finish')) {
+          setStatus('Model ready — ask your question', 'ready');
+          progressWrap.style.display = 'none';
+          progressPct.textContent = '';
+          document.getElementById('user-input').disabled = false;
+          document.getElementById('send-btn').disabled = false;
+          document.getElementById('user-input').focus();
+        } else {
+          const msg = report.text.length > 55 ? report.text.substring(0, 55) + '…' : report.text;
+          setStatus(msg, 'loading');
+        }
+      }
+    });
+  } catch(e) {
+    setStatus('Error: ' + (e.message || 'Failed to load model'), 'error');
+    loadBtn.disabled = false;
+    progressWrap.style.display = 'none';
+    progressPct.textContent = '';
+    console.error(e);
+  }
+};
+
+window.sendMessage = async function() {
+  if (isGenerating || !engine) return;
+  const input = document.getElementById('user-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  autoResize(input);
+  addMessage('user', text);
+
+  // Remove quick prompts on first send
+  const qp = document.getElementById('quick-prompts');
+  if (qp) qp.remove();
+
+  const typingEl = addTyping();
+  isGenerating = true;
+  document.getElementById('send-btn').disabled = true;
+
+  try {
+    const stream = await engine.chat.completions.create({
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: text }
+      ],
+      stream: true,
+      temperature: 0.7,
+      max_tokens: 400
+    });
+
+    let reply = '';
+    typingEl.innerHTML = '';
+    const bubbleEl = typingEl;
+
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content || '';
+      reply += delta;
+      bubbleEl.innerHTML = formatText(reply);
+      scrollToBottom();
+    }
+  } catch(e) {
+    typingEl.innerHTML = '<em>⚠ An error occurred. Please try again.</em>';
+    console.error(e);
+  }
+
+  isGenerating = false;
+  document.getElementById('send-btn').disabled = false;
+  scrollToBottom();
+};
+
+window.sendQuick = function(btn) {
+  if (!engine) { openInfo(); return; }
+  document.getElementById('user-input').value = btn.textContent;
+  sendMessage();
+};
+
+window.handleKey = function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+};
+
+window.autoResize = function(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+};
+
+function addMessage(role, text) {
+  const chat = document.getElementById('chat');
+  const msg = document.createElement('div');
+  msg.className = 'msg ' + role;
+  const avatar = role === 'user' ? '🙏' : '☸';
+  msg.innerHTML = `
+    <div class="msg-avatar">${avatar}</div>
+    <div class="msg-bubble">${role === 'user' ? escHtml(text) : formatText(text)}</div>
+  `;
+  chat.appendChild(msg);
+  scrollToBottom();
+  return msg.querySelector('.msg-bubble');
+}
+
+function addTyping() {
+  const chat = document.getElementById('chat');
+  const msg = document.createElement('div');
+  msg.className = 'msg ai';
+  msg.innerHTML = `
+    <div class="msg-avatar">☸</div>
+    <div class="msg-bubble">
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    </div>
+  `;
+  chat.appendChild(msg);
+  scrollToBottom();
+  return msg.querySelector('.msg-bubble');
+}
+
+function formatText(text) {
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+}
+
+function escHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function scrollToBottom() {
+  const chat = document.getElementById('chat');
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function setStatus(msg, state) {
+  document.getElementById('status-text').textContent = msg;
+  const dot = document.getElementById('status-dot');
+  dot.className = 'status-dot ' + (state || '');
+}
+
+window.openInfo = function() {
+  document.getElementById('info-overlay').classList.add('open');
+};
+window.closeInfo = function() {
+  document.getElementById('info-overlay').classList.remove('open');
+};
+window.closeInfoOutside = function(e) {
+  if (e.target === document.getElementById('info-overlay')) closeInfo();
+};
+
+// Check WebGPU on load
+checkWebGPU();
+
+</script>
+
+<!-- Service Worker Registration -->
+<script>
+if ('serviceWorker' in navigator) {
+  const swCode = `
+const CACHE = 'sacred-wisdom-v1';
+const PRECACHE = []; // dynamic model caching is handled by WebLLM itself
+
+self.addEventListener('install', e => {
+  self.skipWaiting();
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)));
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', e => {
+  // Only cache same-origin requests (not the large model files from CDN)
+  if (e.request.url.startsWith(self.location.origin)) {
+    e.respondWith(
+      caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+        const clone = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+        return res;
+      }))
+    );
+  }
+});
+  `;
+  const swBlob = new Blob([swCode], {type: 'application/javascript'});
+  const swURL = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swURL, {scope: './'}).catch(()=>{});
+}
+</script>
+
+</body>
+</html>
