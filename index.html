@@ -375,6 +375,56 @@
   #info-sheet a { color: var(--gold); }
   #info-sheet ol { padding-left: 18px; }
   #info-sheet .tip { background: rgba(201,162,39,0.08); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 8px 0; font-size: 12px; color: var(--cream-dim); }
+
+  /* ── INSTALL BUTTON ── */
+  #install-bar {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    background: linear-gradient(135deg, rgba(26,107,107,0.18), rgba(201,162,39,0.12));
+    border-bottom: 1px solid rgba(26,107,107,0.35);
+    display: none; /* shown by JS when prompt is available */
+    align-items: center; gap: 10px;
+  }
+
+  #install-bar .install-icon { font-size: 20px; flex-shrink: 0; }
+
+  #install-bar .install-text { flex: 1; }
+  #install-bar .install-text strong { display: block; font-size: 12px; color: var(--gold-light); font-family: 'Cinzel', serif; letter-spacing: 0.05em; }
+  #install-bar .install-text span  { font-size: 10.5px; color: var(--cream-dim); }
+
+  #install-btn {
+    padding: 7px 16px;
+    background: linear-gradient(135deg, #1a6b6b, #227a5e);
+    border: 1px solid rgba(109,213,194,0.4);
+    border-radius: 20px;
+    color: #a8f0e0;
+    font-family: 'Cinzel', serif;
+    font-size: 11px; letter-spacing: 0.08em;
+    cursor: pointer; white-space: nowrap;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 3px 10px rgba(26,107,107,0.35);
+  }
+  #install-btn:active { transform: scale(0.95); }
+
+  #install-dismiss {
+    font-size: 18px; background: none; border: none;
+    color: var(--cream-dim); cursor: pointer; padding: 4px;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Already installed state */
+  #installed-badge {
+    display: none;
+    align-items: center; gap: 6px;
+    padding: 5px 10px;
+    background: rgba(76,175,125,0.12);
+    border: 1px solid rgba(76,175,125,0.3);
+    border-radius: 20px;
+    font-size: 10px; color: var(--green);
+    font-family: 'Cinzel', serif; letter-spacing: 0.06em;
+  }
 </style>
 </head>
 <body>
@@ -389,6 +439,17 @@
     <div class="subtitle">On-Device Scripture AI</div>
     <button class="info-btn" onclick="openInfo()" aria-label="About">ℹ️</button>
   </header>
+
+  <!-- Install bar – shown by JS when Chrome's beforeinstallprompt fires -->
+  <div id="install-bar">
+    <span class="install-icon">📲</span>
+    <div class="install-text">
+      <strong>Install Sacred Wisdom</strong>
+      <span>Add to Home Screen · works offline</span>
+    </div>
+    <button id="install-btn" onclick="triggerInstall()">Install</button>
+    <button id="install-dismiss" onclick="dismissInstall()" aria-label="Dismiss">×</button>
+  </div>
 
   <div id="status-bar">
     <div class="status-dot" id="status-dot"></div>
@@ -420,12 +481,6 @@
     <div class="alert warn" id="alert-oom" style="display:none">
       <strong>⚠️ Model failed to load</strong>
       Your device ran out of GPU memory. Try a <strong>smaller model</strong> from the dropdown — Qwen 1.5B or Gemma 2B are most reliable on Android. If the problem persists, install <strong>PocketPal AI</strong> from the Play Store instead.
-    </div>
-
-    <!-- Install prompt -->
-    <div class="alert info" id="alert-install">
-      <strong>📲 Install this app</strong>
-      Tap the <strong>⋮ menu → Add to Home Screen</strong> in Chrome to install Sacred Wisdom as an offline app. The AI model loads once and is then available offline.
     </div>
 
     <div class="quick-prompts" id="quick-prompts">
@@ -513,28 +568,68 @@
   </div>
 </div>
 
-<!-- ✅ REAL service worker registration -->
+<!-- ✅ Service worker + PWA install prompt handler -->
 <script>
+let _installPrompt = null;
+
+// Capture the browser's install prompt before it auto-dismisses
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _installPrompt = e;
+  if (!isStandalone()) {
+    document.getElementById('install-bar').style.display = 'flex';
+  }
+});
+
+// Hide bar once the app is actually installed
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-bar').style.display = 'none';
+  _installPrompt = null;
+  showInstalledToast();
+});
+
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches ||
+         window.navigator.standalone === true;
+}
+
+window.triggerInstall = async function() {
+  if (!_installPrompt) {
+    alert('To install:\n\n• Chrome: tap ⋮ menu → "Add to Home Screen"\n• Safari (iOS): tap Share → "Add to Home Screen"');
+    return;
+  }
+  _installPrompt.prompt();
+  const { outcome } = await _installPrompt.userChoice;
+  if (outcome === 'accepted') {
+    document.getElementById('install-bar').style.display = 'none';
+  }
+  _installPrompt = null;
+};
+
+window.dismissInstall = function() {
+  document.getElementById('install-bar').style.display = 'none';
+};
+
+function showInstalledToast() {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a6b6b;color:#a8f0e0;padding:9px 18px;border-radius:20px;font-size:12px;font-family:Cinzel,serif;letter-spacing:.06em;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.4)';
+  t.textContent = '✓ Sacred Wisdom installed!';
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js', { scope: './' })
-      .then(reg => {
-        console.log('[SW] Registered, scope:', reg.scope);
-        // Show install prompt if not already installed
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-          document.getElementById('alert-install').style.display = 'none';
-        }
-      })
-      .catch(err => console.warn('[SW] Registration failed:', err));
+      .then(reg => console.log('[SW] Registered:', reg.scope))
+      .catch(err => console.warn('[SW] Failed:', err));
   });
 }
 
-// Detect standalone (installed) mode
-if (window.matchMedia('(display-mode: standalone)').matches ||
-    window.navigator.standalone === true) {
-  document.getElementById('alert-install').style.display = 'none';
-} else {
-  document.getElementById('alert-install').style.display = 'block';
+// If already running as installed app, hide bar
+if (isStandalone()) {
+  document.getElementById('install-bar').style.display = 'none';
 }
 </script>
 
