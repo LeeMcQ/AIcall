@@ -1,71 +1,49 @@
-/* Sacred Wisdom – Service Worker v1.3 – Full Offline */
-const CACHE_NAME = 'sacred-wisdom-v1.3';
+/* Sacred Wisdom – Service Worker v2.0 – MediaPipe build */
+const CACHE_NAME = 'sacred-wisdom-v2.0';
+const CDN_CACHE  = 'sacred-wisdom-cdn-v2.0';
 
-const APP_SHELL = [
-  './index.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
-];
+const APP_SHELL = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
-const CDN_PASSTHROUGH_CACHE = 'sacred-wisdom-cdn-v1.3';
+/* CDN origins to cache for offline use */
+const CDN_HOSTS = ['cdn.jsdelivr.net', 'storage.googleapis.com'];
 
-const CDN_ORIGINS_TO_CACHE = [
-  'esm.run',
-  'cdn.jsdelivr.net',
-  'esm.sh',
-  'unpkg.com'
-];
-
-/* INSTALL */
-self.addEventListener('install', event => {
+self.addEventListener('install', e => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache =>
-      Promise.allSettled(APP_SHELL.map(url => cache.add(url).catch(() => {})))
+  e.waitUntil(
+    caches.open(CACHE_NAME).then(c =>
+      Promise.allSettled(APP_SHELL.map(u => c.add(u).catch(() => {})))
     )
   );
 });
 
-/* ACTIVATE */
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(k => k !== CACHE_NAME && k !== CDN_PASSTHROUGH_CACHE)
-          .map(k => caches.delete(k))
-      )
-    ).then(() => self.clients.claim())
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(
+        keys.filter(k => k !== CACHE_NAME && k !== CDN_CACHE).map(k => caches.delete(k))
+      ))
+      .then(() => self.clients.claim())
   );
 });
 
-/* FETCH */
-self.addEventListener('fetch', event => {
-  const url = new URL(event.request.url);
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
 
-  /* Skip model weights - WebLLM manages those itself */
-  if (
-    url.pathname.includes('-shard') ||
-    url.pathname.endsWith('.bin') ||
-    url.pathname.endsWith('.wasm') ||
-    url.pathname.includes('resolve/main') ||
-    url.hostname === 'huggingface.co' ||
-    url.hostname.endsWith('.hf.co')
-  ) {
+  /* Pass model binary files straight through — handled by app's IndexedDB cache */
+  if (url.pathname.endsWith('.task') || url.pathname.endsWith('.bin') || url.pathname.endsWith('.wasm')) {
     return;
   }
 
-  /* Cache CDN scripts (WebLLM runtime etc.) for offline use */
-  const isCDN = CDN_ORIGINS_TO_CACHE.some(h => url.hostname.includes(h));
+  /* Cache CDN scripts (MediaPipe bundle, wasm loader) */
+  const isCDN = CDN_HOSTS.some(h => url.hostname.includes(h));
   if (isCDN) {
-    event.respondWith(
-      caches.open(CDN_PASSTHROUGH_CACHE).then(cache =>
-        cache.match(event.request).then(cached => {
+    e.respondWith(
+      caches.open(CDN_CACHE).then(cache =>
+        cache.match(e.request).then(cached => {
           if (cached) return cached;
-          return fetch(event.request).then(response => {
-            if (response.ok) cache.put(event.request, response.clone());
-            return response;
+          return fetch(e.request).then(res => {
+            if (res.ok) cache.put(e.request, res.clone());
+            return res;
           }).catch(() => cached);
         })
       )
@@ -75,15 +53,14 @@ self.addEventListener('fetch', event => {
 
   /* Same-origin app shell: cache-first */
   if (url.origin === self.location.origin) {
-    event.respondWith(
-      caches.match(event.request).then(cached => {
+    e.respondWith(
+      caches.match(e.request).then(cached => {
         if (cached) return cached;
-        return fetch(event.request).then(response => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+        return fetch(e.request).then(res => {
+          if (res.ok) {
+            caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone()));
           }
-          return response;
+          return res;
         });
       })
     );
